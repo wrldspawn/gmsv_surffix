@@ -11,7 +11,7 @@ I also am not a fan of trying to contribute to something with no clearly defined
 reserved, whereas this project just uses the Source SDK License.
 
 ## TODO
-> [!WARN]
+> [!CAUTION]
 > This is by far not production ready.
 
 - sourcesdk-minimal fix PR (cannot compile unless manually fixed)
