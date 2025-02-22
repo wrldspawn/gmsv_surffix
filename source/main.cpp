@@ -633,8 +633,8 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 	return blocked;
 }
 
-inline char *GetRIPRelativeOffset(char *address, int skip = 0) {
-	return (char *)(address + skip + *(int32_t *)(address + skip - 4));
+template <typename T = unsigned long long> inline T RelativeToAbsolute(unsigned long long llAddress, int iOffset = 3) {
+	return (T)(llAddress + *(int *)(llAddress + iOffset) + (4 + iOffset));
 }
 
 static ICvar *pCvar = nullptr;
@@ -659,16 +659,15 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
-	// if it doesnt crash on startup itll crash when TraceRay gets called...
 	auto _entitylist =
 	    symfinder.Resolve(server_loader.GetModule(), sym_g_pEntityList.name.c_str(), sym_g_pEntityList.length);
 	if (_entitylist == nullptr) {
 		LUA->ThrowError("Failed to find entity list");
 		return 0;
 	}
-	auto entitylist = (CGlobalEntityList *)GetRIPRelativeOffset((char *)_entitylist, 7);
+	auto entitylist = *RelativeToAbsolute<CGlobalEntityList **>((uintptr_t)_entitylist, 7);
 	if (entitylist == nullptr) {
-		LUA->ThrowError("Failed to cast entity list");
+		LUA->ThrowError("Failed to get absolute address of entity list");
 		return 0;
 	}
 	g_pEntityList = entitylist;

@@ -14,9 +14,7 @@ reserved, whereas this project just uses the Source SDK License.
 > [!CAUTION]
 > This is by far not production ready.
 
-- sourcesdk-minimal fix PR (cannot compile unless manually fixed)
-- Find a better way to get `g_pEntityList`, as it'll currently crash when raytracing (consistent repro: failing
-beginning of surf_shade b3)
+- [sourcesdk-minimal fix PR](https://github.com/danielga/sourcesdk-minimal/pull/49) (cannot compile unless manually fixed)
 - Windows 32bit and Linux signatures
 - Figure out why cvars are invisible (and also force sv_bounce to be visible)
 - See if noclip workaround from SM plugin is needed
