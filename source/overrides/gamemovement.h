@@ -12,6 +12,7 @@
 #pragma once
 #endif
 
+#include <predictable_entity.h>
 #include <vmatrix.h>
 #include <utlvector.h>
 #include <shareddefs.h>
