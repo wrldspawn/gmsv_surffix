@@ -19,6 +19,9 @@
 //                the last call will be a virtual call, take the offset and add it to the base address of CGameMovement
 //                vtable
 //
+// CGameMovement vtable: (not needed on 64bit) instruction to call to offset pointing to vtable, offset var is bytes to
+//                       skip
+//
 // surfaceFriction: Look for `((1.0 - *(var + offset)) * var) + 1.0` in TryPlayerMove
 //
 // ShouldHitEntity: CTraceFilterSimple vtable, will be the only unique function (usually the first) compared to the
@@ -29,11 +32,12 @@
 //
 // MoveHelperServer: xref CMoveHelperServer vtable to function that references it and IMoveHelper vtable -> xref up
 //
-// g_pEntityList: "info_player_start" xref -> function referencing CTraceFilterWalkableEntities, offset is bytes to skip
-//                to offset
+// g_pEntityList: "ents.GetAll" xref, offset is bytes to skip to address
 #if SYSTEM_IS_WINDOWS
 #if ARCHITECTURE_IS_X86_64
 int off_surfaceFriction = 11032;
+int off_CGameMovement = 0;
+Symbol sym_CGameMovement = Symbol::FromSignature("\xFF");
 Symbol sym_TryPlayerMove =
     Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B\x2A\x49\x89\x73\x2A\x49\x89\x7B\x2A\x55\x41\x54");
 Symbol sym_ShouldHitEntity = Symbol::FromSignature("\x48\x89\x5C\x24\x2A\x48\x89\x6C\x24\x2A\x48\x89\x74\x24\x2A\x48"
@@ -46,21 +50,21 @@ int off_g_pEntityList = 7;
 Symbol sym_g_pEntityList = Symbol::FromSignature("\x48\x83\xEC\x28\x48\x8D\x0D\x2A\x2A\x2A\x2A\xE8\x50\x50\x2F\x2A");
 #else
 int off_surfaceFriction = 10336;
+int off_CGameMovement = 5;
+Symbol sym_CGameMovement = Symbol::FromSignature("\x56\x8B\xF1\xC7\x06\x2A\x2A\x2A\x2A\x74");
 Symbol sym_TryPlayerMove = Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x56\x57\x33\xC0");
 Symbol sym_ShouldHitEntity = Symbol::FromSignature("\x55\x8B\xEC\x51\x89\x4D\x2A\x8B\x0D\x2A\x2A\x2A\x2A\x53\x56");
 Symbol sym_GetGroundEntity = Symbol::FromSignature("\x8B\x91\xFC\x01\x00\x00");
 Symbol sym_MoveHelperServer = Symbol::FromSignature("\xB9\x2A\x2A\x2A\x2A\xC7\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xC7"
                                                     "\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\xC7\x05");
-int off_g_pEntityList = 1;
-Symbol sym_g_pEntityList = Symbol::FromSignature(
-    "\xB9\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xC7\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xC7\x05\x2A"
-    "\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xC7\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xC7\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xC7"
-    "\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xC7\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xC7\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A"
-    "\x2A\xC7\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xC7\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xC6\x05");
+int off_g_pEntityList = 3;
+Symbol sym_g_pEntityList = Symbol::FromSignature("\x6A\x2A\xB9\x2A\x2A\x2A\x2A\xBF");
 #endif
 #elif SYSTEM_IS_LINUX
 #if ARCHITECTURE_IS_X86_64
 int off_surfaceFriction = 0; // TODO
+int off_CGameMovement = 0;
+Symbol sym_CGameMovement = Symbol::FromSignature("\xFF");
 Symbol sym_TryPlayerMove = Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B\x2A\x49\x89\x73\x2A\x49\x89"
                                                  "\x7B\x2A\x55\x41\x54"); // TODO
 Symbol sym_ShouldHitEntity =
@@ -73,6 +77,8 @@ Symbol sym_MoveHelperServer =
 Symbol sym_g_pEntityList = Symbol::FromSignature("\x48\x8D\x0D\x51\x62\xC6\x00"); // TODO
 #else
 int off_surfaceFriction = 0; // TODO
+int off_CGameMovement = 0;
+Symbol sym_CGameMovement = Symbol::FromSignature("\xFF");
 Symbol sym_TryPlayerMove = Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B\x2A\x49\x89\x73\x2A\x49\x89"
                                                  "\x7B\x2A\x55\x41\x54"); // TODO
 Symbol sym_ShouldHitEntity =
@@ -93,8 +99,10 @@ typedef IMoveHelperServer *(*MoveHelperServer_t)();
 
 CGlobalVars *gpGlobals = nullptr;
 CBaseEntityList *g_pEntityList = nullptr;
+CGameMovement *vt_CGameMovement = nullptr;
 
 Detouring::Hook detour_TryPlayerMove;
+TryPlayerMove_t func_TryPlayerMove = nullptr;
 ShouldHitEntity_t func_ShouldHitEntity = nullptr;
 GetGroundEntity_t func_GetGroundEntity = nullptr;
 MoveHelperServer_t func_MoveHelperServer = nullptr;
@@ -217,10 +225,22 @@ static bool IsValidMovementTrace(CGameMovement *self, trace_t &tr) {
 }
 
 static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *pFirstTrace) {
+	if (self == nullptr)
+		ConMsg("self null\n");
+	if (pFirstDest == nullptr)
+		ConMsg("pFirstDest null\n");
+	if (pFirstTrace == nullptr)
+		ConMsg("pFirstTrace null\n");
+
+	if (self == nullptr && vt_CGameMovement != nullptr) {
+		self = vt_CGameMovement;
+	}
+
 	/*ConMsg("TryPlayerMove hook :)\n");
 
-	return detour_TryPlayerMove.GetTrampoline<TryPlayerMoveFn>()(self, pFirstDest,
-	                   pFirstTrace);*/
+	if (true)
+	  return detour_TryPlayerMove.GetTrampoline<TryPlayerMove_t>()(self, pFirstDest, pFirstTrace);*/
+
 	auto mv = self->mv;
 	auto player = self->player;
 	Msg("explode?\n");
@@ -654,9 +674,15 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 }
 
 // FIXME for 32bit
+#if ARCHITECTURE_IS_X86_64
 template <typename T = unsigned long long> inline T RelativeToAbsolute(unsigned long long llAddress, int iOffset = 3) {
 	return (T)(llAddress + *(int *)(llAddress + iOffset) + (4 + iOffset));
 }
+#else
+template <typename T = unsigned long long> inline T RelativeToAbsolute(unsigned long long llAddress, int iOffset = 3) {
+	return (T)(*(int *)(llAddress + iOffset) + (4 + iOffset));
+}
+#endif
 
 static ICvar *pCvar = nullptr;
 static IEngineTrace *enginetrace = nullptr;
@@ -738,20 +764,35 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
+	if (sym_CGameMovement.length > 1) {
+		ConMsg("Attempting to find CGameMovement vtable\n");
+		auto _vt = symfinder.Resolve(server_loader.GetModule(), sym_CGameMovement.name.c_str(), sym_CGameMovement.length);
+		if (_vt == nullptr) {
+			ConMsg("Failed to find CGameMovement vtable, things might explode!\n");
+		} else {
+			auto vt = *RelativeToAbsolute<CGameMovement **>((uintptr_t)_vt, off_CGameMovement);
+			if (vt == nullptr) {
+				ConMsg("Failed to get CGameMovement vtable, things might explode!\n");
+			} else {
+				vt_CGameMovement = vt;
+				ConMsg("CGameMovement vtable: %0x\n", vt_CGameMovement);
+			}
+		}
+	}
+
 	Msg("TryPlayerMove explode?\n");
-	TryPlayerMove_t _TryPlayerMove = nullptr;
-	_TryPlayerMove = reinterpret_cast<TryPlayerMove_t>(
+	func_TryPlayerMove = reinterpret_cast<TryPlayerMove_t>(
 	    symfinder.Resolve(server_loader.GetModule(), sym_TryPlayerMove.name.c_str(), sym_TryPlayerMove.length));
 
-	if (_TryPlayerMove == nullptr) {
+	if (func_TryPlayerMove == nullptr) {
 		LUA->ThrowError("Failed to find TryPlayerMove");
 		return 0;
 	}
 
-	ConMsg("Got TryPlayerMove: %0x\n", _TryPlayerMove);
+	ConMsg("Got TryPlayerMove: %0x\n", func_TryPlayerMove);
 
 	Msg("hook explode?\n");
-	bool hookCreated_TryPlayerMove = detour_TryPlayerMove.Create(reinterpret_cast<void *>(_TryPlayerMove),
+	bool hookCreated_TryPlayerMove = detour_TryPlayerMove.Create(reinterpret_cast<void *>(func_TryPlayerMove),
 	                                                             reinterpret_cast<void *>(&hook_TryPlayerMove));
 	bool hookEnabled_TryPlayerMove = detour_TryPlayerMove.Enable();
 
