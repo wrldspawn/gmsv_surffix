@@ -38,57 +38,53 @@
 int off_surfaceFriction = 11032;
 int off_CGameMovement = 0;
 Symbol sym_CGameMovement = Symbol::FromSignature("\xFF");
-Symbol sym_TryPlayerMove =
-    Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B\x2A\x49\x89\x73\x2A\x49\x89\x7B\x2A\x55\x41\x54");
-Symbol sym_ShouldHitEntity = Symbol::FromSignature("\x48\x89\x5C\x24\x2A\x48\x89\x6C\x24\x2A\x48\x89\x74\x24\x2A\x48"
-                                                   "\x89\x7C\x24\x2A\x41\x56\x48\x83\xEC\x2A\x48\x8B\xE9\x41\x8B\xF8");
+Symbol sym_TryPlayerMove = Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B*\x49\x89\x73*\x49\x89\x7B*\x55\x41\x54");
+Symbol sym_ShouldHitEntity = Symbol::FromSignature("\x48\x89\x5C\x24*\x48\x89\x6C\x24*\x48\x89\x74\x24*\x48"
+                                                   "\x89\x7C\x24*\x41\x56\x48\x83\xEC*\x48\x8B\xE9\x41\x8B\xF8");
 Symbol sym_GetGroundEntity = Symbol::FromSignature("\x8B\x91\xA8\x02\x00\x00");
-Symbol sym_MoveHelperServer =
-    Symbol::FromSignature("\x40\x53\x48\x83\xEC\x2A\x65\x48\x8B\x04\x25\x2A\x2A\x2A\x2A\x8B\x0D\x2A\x2A\x2A\x2A\xBA\x2A"
-                          "\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x39\x05");
-int off_g_pEntityList = 7;
-Symbol sym_g_pEntityList = Symbol::FromSignature("\x48\x83\xEC\x28\x48\x8D\x0D\x2A\x2A\x2A\x2A\xE8\x50\x50\x2F\x2A");
+Symbol sym_MoveHelperServer = Symbol::FromSignature("\x40\x53\x48\x83\xEC*\x65\x48\x8B\x04\x25****\x8B\x0D****\xBA*"
+                                                    "**********\x39\x05");
+int off_g_pEntityList = 6;
+Symbol sym_g_pEntityList = Symbol::FromSignature("\x48\x8B\xD3\x48\x8D\x0D****\xE8****");
 #else
 int off_surfaceFriction = 10336;
 int off_CGameMovement = 5;
-Symbol sym_CGameMovement = Symbol::FromSignature("\x56\x8B\xF1\xC7\x06\x2A\x2A\x2A\x2A\x74");
-Symbol sym_TryPlayerMove = Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x56\x57\x33\xC0");
-Symbol sym_ShouldHitEntity = Symbol::FromSignature("\x55\x8B\xEC\x51\x89\x4D\x2A\x8B\x0D\x2A\x2A\x2A\x2A\x53\x56");
+Symbol sym_CGameMovement = Symbol::FromSignature("\x56\x8B\xF1\xC7\x06****\x74");
+Symbol sym_TryPlayerMove = Symbol::FromSignature("\x55\x8B\xEC\x81\xEC****\x56\x57\x33\xC0");
+Symbol sym_ShouldHitEntity = Symbol::FromSignature("\x55\x8B\xEC\x51\x89\x4D*\x8B\x0D****\x53\x56");
 Symbol sym_GetGroundEntity = Symbol::FromSignature("\x8B\x91\xFC\x01\x00\x00");
-Symbol sym_MoveHelperServer = Symbol::FromSignature("\xB9\x2A\x2A\x2A\x2A\xC7\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xC7"
-                                                    "\x05\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\xC7\x05");
+Symbol sym_MoveHelperServer = Symbol::FromSignature("\xB9****\xC7\x05********\xC7"
+                                                    "\x05********\xE8****\xC7\x05");
 int off_g_pEntityList = 3;
-Symbol sym_g_pEntityList = Symbol::FromSignature("\x6A\x2A\xB9\x2A\x2A\x2A\x2A\xBF");
+Symbol sym_g_pEntityList = Symbol::FromSignature("\x6A*\xB9****\xBF");
 #endif
 #elif SYSTEM_IS_LINUX
 #if ARCHITECTURE_IS_X86_64
 int off_surfaceFriction = 0; // TODO
 int off_CGameMovement = 0;
 Symbol sym_CGameMovement = Symbol::FromSignature("\xFF");
-Symbol sym_TryPlayerMove = Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B\x2A\x49\x89\x73\x2A\x49\x89"
-                                                 "\x7B\x2A\x55\x41\x54"); // TODO
+Symbol sym_TryPlayerMove = Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B*\x49\x89\x73*\x49\x89"
+                                                 "\x7B*\x55\x41\x54"); // TODO
 Symbol sym_ShouldHitEntity =
     Symbol::FromSignature("\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x48\x89\x7C\x24\x00\x41\x56\x48"
                           "\x83\xEC\x00\x48\x8B\xE9\x41\x8B\xF8");              // TODO
 Symbol sym_GetGroundEntity = Symbol::FromSignature("\x8B\x91\xA8\x02\x00\x00"); // TODO
-Symbol sym_MoveHelperServer =
-    Symbol::FromSignature("\x48\x89\x5C\x24\x2A\x57\x48\x83\xEC\x2A\x48\x8D\x05\x2A\x2A\x2A\x2A\x48\x8B\xF9\x2A\x2A\x2A"
-                          "\x8B\xDA\x48\x83\xC1\x2A\x48\xC7\x05");                // TODO
-Symbol sym_g_pEntityList = Symbol::FromSignature("\x48\x8D\x0D\x51\x62\xC6\x00"); // TODO
+Symbol sym_MoveHelperServer = Symbol::FromSignature("\x48\x89\x5C\x24*\x57\x48\x83\xEC*\x48\x8D\x05****\x48\x8B\xF9***"
+                                                    "\x8B\xDA\x48\x83\xC1*\x48\xC7\x05"); // TODO
+Symbol sym_g_pEntityList = Symbol::FromSignature("\x48\x8D\x0D\x51\x62\xC6\x00");         // TODO
 #else
 int off_surfaceFriction = 0; // TODO
 int off_CGameMovement = 0;
 Symbol sym_CGameMovement = Symbol::FromSignature("\xFF");
-Symbol sym_TryPlayerMove = Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B\x2A\x49\x89\x73\x2A\x49\x89"
-                                                 "\x7B\x2A\x55\x41\x54"); // TODO
+Symbol sym_TryPlayerMove = Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B*\x49\x89\x73*\x49\x89"
+                                                 "\x7B*\x55\x41\x54"); // TODO
 Symbol sym_ShouldHitEntity =
     Symbol::FromSignature("\x48\x89\x5C\x24\x00\x48\x89\x6C\x24\x00\x48\x89\x74\x24\x00\x48\x89\x7C\x24\x00\x41\x56\x48"
                           "\x83\xEC\x00\x48\x8B\xE9\x41\x8B\xF8");              // TODO
 Symbol sym_GetGroundEntity = Symbol::FromSignature("\x8B\x91\xA8\x02\x00\x00"); // TODO
-Symbol sym_MoveHelperServer =
-    Symbol::FromSignature("\x48\x89\x5C\x24\x2A\x57\x48\x83\xEC\x2A\x48\x8D\x05\x2A\x2A\x2A\x2A\x48\x8B\xF9\x2A\x2A\x2A"
-                          "\x8B\xDA\x48\x83\xC1\x2A\x48\xC7\x05");                // TODO
-Symbol sym_g_pEntityList = Symbol::FromSignature("\x48\x8D\x0D\x51\x62\xC6\x00"); // TODO
+Symbol sym_MoveHelperServer = Symbol::FromSignature("\x48\x89\x5C\x24*\x57\x48\x83\xEC*\x48\x8D\x05****\x48\x8B\xF9***"
+                                                    "\x8B\xDA\x48\x83\xC1*\x48\xC7\x05"); // TODO
+Symbol sym_g_pEntityList = Symbol::FromSignature("\x48\x8D\x0D\x51\x62\xC6\x00");         // TODO
 #endif
 #endif
 
@@ -225,12 +221,12 @@ static bool IsValidMovementTrace(CGameMovement *self, trace_t &tr) {
 }
 
 static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *pFirstTrace) {
-	if (self == nullptr)
-		ConMsg("self null\n");
+	/*if (self == nullptr)
+	  ConMsg("self null\n");
 	if (pFirstDest == nullptr)
-		ConMsg("pFirstDest null\n");
+	  ConMsg("pFirstDest null\n");
 	if (pFirstTrace == nullptr)
-		ConMsg("pFirstTrace null\n");
+	  ConMsg("pFirstTrace null\n");*/
 
 	if (self == nullptr && vt_CGameMovement != nullptr) {
 		self = vt_CGameMovement;
@@ -243,9 +239,9 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 
 	auto mv = self->mv;
 	auto player = self->player;
-	Msg("explode?\n");
+	// Msg("explode?\n");
 	float m_surfaceFriction = *((float *)player + off_surfaceFriction);
-	Msg("no explode\n");
+	// Msg("no explode\n");
 
 	int bumpcount, numbumps;
 	Vector dir;
@@ -706,20 +702,20 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
-	Msg("entitylist explode?\n");
+	// Msg("entitylist explode?\n");
 	auto _entitylist =
 	    symfinder.Resolve(server_loader.GetModule(), sym_g_pEntityList.name.c_str(), sym_g_pEntityList.length);
 	if (_entitylist == nullptr) {
 		LUA->ThrowError("Failed to find entity list");
 		return 0;
 	}
-	Msg("entitylist cast explode?\n");
+	// Msg("entitylist cast explode?\n");
 	auto entitylist = *RelativeToAbsolute<CGlobalEntityList **>((uintptr_t)_entitylist, off_g_pEntityList);
 	if (entitylist == nullptr) {
 		LUA->ThrowError("Failed to get absolute address of entity list");
 		return 0;
 	}
-	Msg("entitylist assign explode?\n");
+	// Msg("entitylist assign explode?\n");
 	g_pEntityList = entitylist;
 	if (g_pEntityList == nullptr) {
 		LUA->ThrowError("Failed to find g_pEntityList");
@@ -740,7 +736,7 @@ GMOD_MODULE_OPEN() {
 	}
 	gpGlobals = playerinfomanager->GetGlobalVars();
 
-	Msg("ShouldHitEntity explode?\n");
+	// Msg("ShouldHitEntity explode?\n");
 	func_ShouldHitEntity = reinterpret_cast<ShouldHitEntity_t>(
 	    symfinder.Resolve(server_loader.GetModule(), sym_ShouldHitEntity.name.c_str(), sym_ShouldHitEntity.length));
 	if (func_ShouldHitEntity == nullptr) {
@@ -748,7 +744,7 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
-	Msg("GetGroundEntity explode?\n");
+	// Msg("GetGroundEntity explode?\n");
 	func_GetGroundEntity = reinterpret_cast<GetGroundEntity_t>(
 	    symfinder.Resolve(server_loader.GetModule(), sym_GetGroundEntity.name.c_str(), sym_GetGroundEntity.length));
 	if (func_GetGroundEntity == nullptr) {
@@ -756,7 +752,7 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
-	Msg("MoveHelper explode?\n");
+	// Msg("MoveHelper explode?\n");
 	func_MoveHelperServer = reinterpret_cast<MoveHelperServer_t>(
 	    symfinder.Resolve(server_loader.GetModule(), sym_MoveHelperServer.name.c_str(), sym_MoveHelperServer.length));
 	if (func_MoveHelperServer == nullptr) {
@@ -780,7 +776,7 @@ GMOD_MODULE_OPEN() {
 		}
 	}
 
-	Msg("TryPlayerMove explode?\n");
+	// Msg("TryPlayerMove explode?\n");
 	func_TryPlayerMove = reinterpret_cast<TryPlayerMove_t>(
 	    symfinder.Resolve(server_loader.GetModule(), sym_TryPlayerMove.name.c_str(), sym_TryPlayerMove.length));
 
@@ -789,14 +785,14 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
-	ConMsg("Got TryPlayerMove: %0x\n", func_TryPlayerMove);
+	// ConMsg("Got TryPlayerMove: %0x\n", func_TryPlayerMove);
 
-	Msg("hook explode?\n");
-	bool hookCreated_TryPlayerMove = detour_TryPlayerMove.Create(reinterpret_cast<void *>(func_TryPlayerMove),
-	                                                             reinterpret_cast<void *>(&hook_TryPlayerMove));
-	bool hookEnabled_TryPlayerMove = detour_TryPlayerMove.Enable();
+	// Msg("hook explode?\n");
+	/*bool hookCreated_TryPlayerMove = */ detour_TryPlayerMove.Create(reinterpret_cast<void *>(func_TryPlayerMove),
+	                                                                  reinterpret_cast<void *>(&hook_TryPlayerMove));
+	/*bool hookEnabled_TryPlayerMove = */ detour_TryPlayerMove.Enable();
 
-	ConMsg("TryPlayerMove hooked: %d, %d\n", hookCreated_TryPlayerMove, hookEnabled_TryPlayerMove);
+	// ConMsg("TryPlayerMove hooked: %d, %d\n", hookCreated_TryPlayerMove, hookEnabled_TryPlayerMove);
 
 	return 1;
 }
