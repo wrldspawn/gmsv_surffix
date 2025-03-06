@@ -44,8 +44,9 @@ Symbol sym_ShouldHitEntity = Symbol::FromSignature("\x48\x89\x5C\x24*\x48\x89\x6
 Symbol sym_GetGroundEntity = Symbol::FromSignature("\x8B\x91\xA8\x02\x00\x00");
 Symbol sym_MoveHelperServer = Symbol::FromSignature("\x40\x53\x48\x83\xEC*\x65\x48\x8B\x04\x25****\x8B\x0D****\xBA*"
                                                     "**********\x39\x05");
-int off_g_pEntityList = 6;
-Symbol sym_g_pEntityList = Symbol::FromSignature("\x48\x8B\xD3\x48\x8D\x0D****\xE8****");
+int off_g_pEntityList = 5;
+Symbol sym_g_pEntityList =
+    Symbol::FromSignature("\x33\xD2\x48\x8D\x0D****\xBF****\xE8****\x48\x8B\xD8\x48\x85\xC0\x74");
 #else
 int off_surfaceFriction = 10336;
 int off_CGameMovement = 5;
@@ -221,27 +222,14 @@ static bool IsValidMovementTrace(CGameMovement *self, trace_t &tr) {
 }
 
 static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *pFirstTrace) {
-	/*if (self == nullptr)
-	  ConMsg("self null\n");
-	if (pFirstDest == nullptr)
-	  ConMsg("pFirstDest null\n");
-	if (pFirstTrace == nullptr)
-	  ConMsg("pFirstTrace null\n");*/
-
+	// 32bit weirdness
 	if (self == nullptr && vt_CGameMovement != nullptr) {
 		self = vt_CGameMovement;
 	}
 
-	/*ConMsg("TryPlayerMove hook :)\n");
-
-	if (true)
-	  return detour_TryPlayerMove.GetTrampoline<TryPlayerMove_t>()(self, pFirstDest, pFirstTrace);*/
-
 	auto mv = self->mv;
 	auto player = self->player;
-	// Msg("explode?\n");
 	float m_surfaceFriction = *((float *)player + off_surfaceFriction);
-	// Msg("no explode\n");
 
 	int bumpcount, numbumps;
 	Vector dir;
@@ -279,14 +267,11 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 
 	Vector vecWallNormal;
 
-	// Msg("Start bumping\n");
 	for (bumpcount = 0; bumpcount < numbumps; bumpcount++) {
-		// Msg("Bump %d\n", bumpcount);
 		if (mv->m_vecVelocity.Length() == 0.0)
 			break;
 
 		if (stuck_on_ramp && sv_ramp_fix.GetBool()) {
-			// Msg("Stuck on ramp\n");
 			if (!has_valid_plane) {
 				if (!CloseEnough(pm.plane.normal, Vector(0.0f, 0.0f, 0.0f), FLT_EPSILON) && valid_plane != pm.plane.normal) {
 					valid_plane = pm.plane.normal;
@@ -380,18 +365,9 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 		// See if we can make it from origin to end point.
 		// If their velocity Z is 0, then we can avoid an extra trace here during WalkMove.
 		if (pFirstDest && end == *pFirstDest) {
-			// Msg("First dest\n");
 			pm = *pFirstTrace;
 		} else {
-			trace_t foo;
-			self->TracePlayerBBox(mv->GetAbsOrigin(), mv->GetAbsOrigin(), self->PlayerSolidMask(),
-			                      COLLISION_GROUP_PLAYER_MOVEMENT, foo);
-			if (foo.startsolid || foo.fraction != 1.0f) {
-				// Msg("bah\n");
-			}
-
 			if (stuck_on_ramp && has_valid_plane && sv_ramp_fix.GetBool()) {
-				// Msg("stuck normal update\n");
 				self->TracePlayerBBox(fixed_origin, end, self->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, pm);
 				pm.plane.normal = valid_plane;
 			} else {
@@ -399,7 +375,6 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 
 				if (sv_rngfix_enable.GetBool() && sv_slope_fix.GetBool() && player->GetMoveType() == MOVETYPE_WALK &&
 				    func_GetGroundEntity(player) == nullptr && player->GetWaterLevel() < WL_Waist) {
-					// Msg("rngfix slope fix\n");
 					bool bValidHit = !pm.allsolid && pm.fraction < 1.0f;
 
 					bool bCouldStandHere = pm.plane.normal.z >= 0.7f && mv->m_vecVelocity.z <= NON_JUMP_VELOCITY;
@@ -434,7 +409,6 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 
 		if (bumpcount && sv_ramp_fix.GetBool() && func_GetGroundEntity(player) == nullptr &&
 		    !IsValidMovementTrace(self, pm)) {
-			// Msg("stuck\n");
 			has_valid_plane = false;
 			stuck_on_ramp = true;
 			continue;
@@ -444,7 +418,6 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 		// the whole way, zero out our velocity and return that we
 		// are blocked by floor and wall.
 		if (pm.allsolid && !sv_ramp_fix.GetBool()) {
-			// Msg("all solid\n");
 			//  entity is trapped in another solid
 			VectorCopy(vec3_origin, mv->m_vecVelocity);
 
@@ -455,7 +428,6 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 		//  copy the end position into the pmove.origin and
 		//  zero the plane counter.
 		if (pm.fraction > 0.0f) {
-			// Msg("fraction: %.2f\n", pm.fraction);
 			if ((!bumpcount || func_GetGroundEntity(player) != nullptr || !sv_ramp_fix.GetBool()) && numbumps > 0 &&
 			    pm.fraction == 1.0f) {
 				// There's a precision issue with terrain tracing that can cause a swept box to successfully trace
@@ -466,7 +438,6 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 				self->TracePlayerBBox(pm.endpos, pm.endpos, self->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, stuck);
 
 				if ((stuck.startsolid || stuck.fraction != 1.0f) && !bumpcount && sv_ramp_fix.GetBool()) {
-					// Msg("stuck\n");
 					has_valid_plane = false;
 					stuck_on_ramp = true;
 					continue;
@@ -476,20 +447,12 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 				}
 			}
 
-			trace_t foo;
-			self->TracePlayerBBox(pm.endpos, pm.endpos, self->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, foo);
-			if (foo.startsolid || foo.fraction != 1.0f) {
-				// Msg("Player will become stuck!!!\n");
-			}
-
 			if (sv_ramp_fix.GetBool()) {
-				// Msg("unstuck\n");
 				has_valid_plane = false;
 				stuck_on_ramp = false;
 			}
 
 			// actually covered some distance
-			// Msg("actually covered some distance\n");
 			VectorCopy(mv->m_vecVelocity, original_velocity);
 			mv->SetAbsOrigin(pm.endpos);
 			VectorCopy(mv->GetAbsOrigin(), fixed_origin);
@@ -500,37 +463,20 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 		// If we covered the entire distance, we are done
 		//  and can return.
 		if (CloseEnough(pm.fraction, 1.0f, FLT_EPSILON)) {
-			// Msg("moved entire distance\n");
-			if (bumpcount == 0) {
-				// Msg("left ramp\n");
-			}
 			break; // moved the entire distance
 		}
 
 		// Save entity that blocked us (since fraction was < 1.0) for contact
 		// Add it if it's not already in the list!!!
-		// Msg("MoveHelperServer\n");
 		func_MoveHelperServer()->AddToTouched(pm, mv->m_vecVelocity);
-
-		if (func_GetGroundEntity(player) == nullptr) {
-			if (pm.plane.normal.z > 0.0f) {
-				// Msg("floor\n");
-			} else if (pm.plane.normal.z < 0.0f) {
-				// Msg("ceiling\n");
-			} else {
-				// Msg("wall\n");
-			}
-		}
 
 		// If the plane we hit has a high z component in the normal, then it's probably a floor
 		if (pm.plane.normal[2] > 0.7) {
-			// Msg("floor\n");
 			blocked |= 1; // floor
 		}
 
 		// If the plane has a zero z component in the normal, then it's a step or wall
 		if (CloseEnough(pm.plane.normal[2], 0.0f, FLT_EPSILON)) {
-			// Msg("step/wall\n");
 			blocked |= 2; // step / wall
 		}
 
@@ -542,7 +488,6 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 			// this shouldn't really happen
 			//  Stop our movement if so.
 			VectorCopy(vec3_origin, mv->m_vecVelocity);
-			// Msg("Too many planes 4\n");
 
 			break;
 		}
@@ -561,14 +506,9 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 		if (numplanes == 1 && player->GetMoveType() == MOVETYPE_WALK && func_GetGroundEntity(player) == nullptr) {
 			// Is this a floor/slope that the player can walk on?
 			if (planes[0][2] > 0.7) {
-				// Msg("walkable floor/slope\n");
 				ClipVelocity(self, original_velocity, planes[0], new_velocity, 1);
 				VectorCopy(new_velocity, original_velocity);
 			} else { // either the player is surfing or slammed into a wall
-				// Msg("surfing or wall\n");
-				if (planes[0][2] > 0.0f) {
-					// Msg("boarding\n");
-				}
 				ClipVelocity(self, original_velocity, planes[0], new_velocity,
 				             1.0f + sv_bounce->GetFloat() * (1.0f - m_surfaceFriction));
 			}
@@ -581,16 +521,13 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 				for (j = 0; j < numplanes; j++) {
 					if (j != i) {
 						// Are we now moving against this plane?
-						// Msg("Moving against plane? %d, %d\n", i, j);
 						if (mv->m_vecVelocity.Dot(planes[j]) < 0) {
-							// Msg("Bad plane\n");
 							break; // not ok
 						}
 					}
 				}
 
 				if (j == numplanes) { // Didn't have to clip, so we're ok
-					// Msg("didnt clip\n");
 					break;
 				}
 			}
@@ -599,7 +536,6 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 			if (i != numplanes) {
 				// go along this plane
 				// pmove.velocity is set in clipping call, no need to set again.
-				// Msg("plane set done\n");
 			} else { // go along the crease
 				if (numplanes != 2) {
 					// Msg("numplanes != 2\n");
@@ -609,7 +545,6 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 
 				// Fun fact time: these next five lines of code fix (vertical) rampbug
 				if (CloseEnough(planes[0], planes[1], FLT_EPSILON)) {
-					// Msg("Vertical rampbug fix\n");
 					//  Why did the above return true? Well, when surfing, you can "clip" into the
 					//  ramp, due to the ramp not pushing you away enough, and when that happens,
 					//  a surfer cries. So the game thinks the surfer is clipping along two of the exact
@@ -643,42 +578,31 @@ static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *
 			//
 			d = mv->m_vecVelocity.Dot(primal_velocity);
 			if (d <= 0) {
-				// Msg("Back\n");
 				VectorCopy(vec3_origin, mv->m_vecVelocity);
 				break;
 			}
 		}
 	}
-	// Msg("End bumping\n");
 
 	if (CloseEnough(allFraction, 0.0f, FLT_EPSILON)) {
-		// Msg("Zero velocity\n");
 		VectorCopy(vec3_origin, mv->m_vecVelocity);
 	}
 
 	float fLateralStoppingAmount = primal_velocity.Length2D() - mv->m_vecVelocity.Length2D();
 	if (fLateralStoppingAmount > PLAYER_MAX_SAFE_FALL_SPEED) {
-		// Msg("Landing effects\n");
 		float fSlamVol = (fLateralStoppingAmount > PLAYER_MAX_SAFE_FALL_SPEED * 2.0f) ? 1.0f : 0.85f;
 
 		// Play rough landing sound with last traced surface.
 		self->PlayerRoughLandingEffects(fSlamVol);
 	}
 
-	// Msg("TryPlayerMove done: %d\n", blocked);
 	return blocked;
 }
 
-// FIXME for 32bit
-#if ARCHITECTURE_IS_X86_64
-template <typename T = unsigned long long> inline T RelativeToAbsolute(unsigned long long llAddress, int iOffset = 3) {
-	return (T)(llAddress + *(int *)(llAddress + iOffset) + (4 + iOffset));
+inline char *RelativeToAbsolute(char *address, int offset) {
+	uint32_t rel = *reinterpret_cast<uint32_t *>((int *)(address + offset));
+	return address + rel + (4 + offset);
 }
-#else
-template <typename T = unsigned long long> inline T RelativeToAbsolute(unsigned long long llAddress, int iOffset = 3) {
-	return (T)(*(int *)(llAddress + iOffset) + (4 + iOffset));
-}
-#endif
 
 static ICvar *pCvar = nullptr;
 static IEngineTrace *enginetrace = nullptr;
@@ -702,25 +626,25 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
-	// Msg("entitylist explode?\n");
 	auto _entitylist =
 	    symfinder.Resolve(server_loader.GetModule(), sym_g_pEntityList.name.c_str(), sym_g_pEntityList.length);
 	if (_entitylist == nullptr) {
 		LUA->ThrowError("Failed to find entity list");
 		return 0;
 	}
-	// Msg("entitylist cast explode?\n");
-	auto entitylist = *RelativeToAbsolute<CGlobalEntityList **>((uintptr_t)_entitylist, off_g_pEntityList);
+	// ConMsg("entity list find addr: 0x%I64x\n", _entitylist);
+
+	auto entitylist = RelativeToAbsolute((char *)_entitylist, off_g_pEntityList);
 	if (entitylist == nullptr) {
 		LUA->ThrowError("Failed to get absolute address of entity list");
 		return 0;
 	}
-	// Msg("entitylist assign explode?\n");
-	g_pEntityList = entitylist;
+	g_pEntityList = reinterpret_cast<CGlobalEntityList *>(entitylist);
 	if (g_pEntityList == nullptr) {
 		LUA->ThrowError("Failed to find g_pEntityList");
 		return 0;
 	}
+	// ConMsg("g_pEntityList: 0x%I64x\n", g_pEntityList);
 
 	enginetrace = engine_loader.GetInterface<IEngineTrace>(INTERFACEVERSION_ENGINETRACE_SERVER);
 	if (enginetrace == nullptr) {
@@ -736,7 +660,6 @@ GMOD_MODULE_OPEN() {
 	}
 	gpGlobals = playerinfomanager->GetGlobalVars();
 
-	// Msg("ShouldHitEntity explode?\n");
 	func_ShouldHitEntity = reinterpret_cast<ShouldHitEntity_t>(
 	    symfinder.Resolve(server_loader.GetModule(), sym_ShouldHitEntity.name.c_str(), sym_ShouldHitEntity.length));
 	if (func_ShouldHitEntity == nullptr) {
@@ -744,15 +667,13 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
-	// Msg("GetGroundEntity explode?\n");
 	func_GetGroundEntity = reinterpret_cast<GetGroundEntity_t>(
 	    symfinder.Resolve(server_loader.GetModule(), sym_GetGroundEntity.name.c_str(), sym_GetGroundEntity.length));
 	if (func_GetGroundEntity == nullptr) {
-		LUA->ThrowError("Failted to find GetGroundEntity");
+		LUA->ThrowError("Failed to find GetGroundEntity");
 		return 0;
 	}
 
-	// Msg("MoveHelper explode?\n");
 	func_MoveHelperServer = reinterpret_cast<MoveHelperServer_t>(
 	    symfinder.Resolve(server_loader.GetModule(), sym_MoveHelperServer.name.c_str(), sym_MoveHelperServer.length));
 	if (func_MoveHelperServer == nullptr) {
@@ -766,17 +687,16 @@ GMOD_MODULE_OPEN() {
 		if (_vt == nullptr) {
 			ConMsg("Failed to find CGameMovement vtable, things might explode!\n");
 		} else {
-			auto vt = *RelativeToAbsolute<CGameMovement **>((uintptr_t)_vt, off_CGameMovement);
+			auto vt = RelativeToAbsolute((char *)_vt, off_CGameMovement);
 			if (vt == nullptr) {
 				ConMsg("Failed to get CGameMovement vtable, things might explode!\n");
 			} else {
-				vt_CGameMovement = vt;
-				ConMsg("CGameMovement vtable: %0x\n", vt_CGameMovement);
+				vt_CGameMovement = reinterpret_cast<CGameMovement *>(vt);
+				ConMsg("CGameMovement vtable: 0x%I64x\n", vt_CGameMovement);
 			}
 		}
 	}
 
-	// Msg("TryPlayerMove explode?\n");
 	func_TryPlayerMove = reinterpret_cast<TryPlayerMove_t>(
 	    symfinder.Resolve(server_loader.GetModule(), sym_TryPlayerMove.name.c_str(), sym_TryPlayerMove.length));
 
@@ -785,9 +705,8 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
-	// ConMsg("Got TryPlayerMove: %0x\n", func_TryPlayerMove);
+	// ConMsg("Got TryPlayerMove: 0x%I64x\n", func_TryPlayerMove);
 
-	// Msg("hook explode?\n");
 	/*bool hookCreated_TryPlayerMove = */ detour_TryPlayerMove.Create(reinterpret_cast<void *>(func_TryPlayerMove),
 	                                                                  reinterpret_cast<void *>(&hook_TryPlayerMove));
 	/*bool hookEnabled_TryPlayerMove = */ detour_TryPlayerMove.Enable();
