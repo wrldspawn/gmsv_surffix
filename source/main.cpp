@@ -19,9 +19,6 @@
 //                the last call will be a virtual call, take the offset and add it to the base address of CGameMovement
 //                vtable
 //
-// CGameMovement vtable: (not needed on 64bit) instruction to call to offset pointing to vtable, offset var is bytes to
-//                       skip
-//
 // surfaceFriction: Look for `((1.0 - *(var + offset)) * var) + 1.0` in TryPlayerMove
 //
 // ShouldHitEntity: CTraceFilterSimple vtable, will be the only unique function (usually the first) compared to the
@@ -36,8 +33,6 @@
 #if SYSTEM_IS_WINDOWS
 #if ARCHITECTURE_IS_X86_64
 int off_surfaceFriction = 11032;
-int off_CGameMovement = 0;
-Symbol sym_CGameMovement = Symbol::FromSignature("\xFF");
 Symbol sym_TryPlayerMove = Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B*\x49\x89\x73*\x49\x89\x7B*\x55\x41\x54");
 Symbol sym_ShouldHitEntity = Symbol::FromSignature("\x48\x89\x5C\x24*\x48\x89\x6C\x24*\x48\x89\x74\x24*\x48"
                                                    "\x89\x7C\x24*\x41\x56\x48\x83\xEC*\x48\x8B\xE9\x41\x8B\xF8");
@@ -49,8 +44,6 @@ Symbol sym_g_pEntityList =
     Symbol::FromSignature("\x33\xD2\x48\x8D\x0D****\xBF****\xE8****\x48\x8B\xD8\x48\x85\xC0\x74");
 #else
 int off_surfaceFriction = 10336;
-int off_CGameMovement = 5;
-Symbol sym_CGameMovement = Symbol::FromSignature("\x56\x8B\xF1\xC7\x06****\x74");
 Symbol sym_TryPlayerMove = Symbol::FromSignature("\x55\x8B\xEC\x81\xEC****\x56\x57\x33\xC0");
 Symbol sym_ShouldHitEntity = Symbol::FromSignature("\x55\x8B\xEC\x51\x89\x4D*\x8B\x0D****\x53\x56");
 Symbol sym_GetGroundEntity = Symbol::FromSignature("\x8B\x91\xFC\x01\x00\x00");
@@ -62,8 +55,6 @@ Symbol sym_g_pEntityList = Symbol::FromSignature("\x6A*\xB9****\xBF");
 #elif SYSTEM_IS_LINUX
 #if ARCHITECTURE_IS_X86_64
 int off_surfaceFriction = 0; // TODO
-int off_CGameMovement = 0;
-Symbol sym_CGameMovement = Symbol::FromSignature("\xFF");
 Symbol sym_TryPlayerMove = Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B*\x49\x89\x73*\x49\x89"
                                                  "\x7B*\x55\x41\x54"); // TODO
 Symbol sym_ShouldHitEntity =
@@ -75,8 +66,6 @@ Symbol sym_MoveHelperServer = Symbol::FromSignature("\x48\x89\x5C\x24*\x57\x48\x
 Symbol sym_g_pEntityList = Symbol::FromSignature("\x48\x8D\x0D\x51\x62\xC6\x00");         // TODO
 #else
 int off_surfaceFriction = 0; // TODO
-int off_CGameMovement = 0;
-Symbol sym_CGameMovement = Symbol::FromSignature("\xFF");
 Symbol sym_TryPlayerMove = Symbol::FromSignature("\x4C\x8B\xDC\x49\x89\x5B*\x49\x89\x73*\x49\x89"
                                                  "\x7B*\x55\x41\x54"); // TODO
 Symbol sym_ShouldHitEntity =
@@ -96,7 +85,6 @@ typedef IMoveHelperServer *(*MoveHelperServer_t)();
 
 CGlobalVars *gpGlobals = nullptr;
 CBaseEntityList *g_pEntityList = nullptr;
-CGameMovement *vt_CGameMovement = nullptr;
 
 Detouring::Hook detour_TryPlayerMove;
 TryPlayerMove_t func_TryPlayerMove = nullptr;
@@ -222,11 +210,6 @@ static bool IsValidMovementTrace(CGameMovement *self, trace_t &tr) {
 }
 
 static int hook_TryPlayerMove(CGameMovement *self, Vector *pFirstDest, trace_t *pFirstTrace) {
-	// 32bit weirdness
-	if (self == nullptr && vt_CGameMovement != nullptr) {
-		self = vt_CGameMovement;
-	}
-
 	auto mv = self->mv;
 	auto player = self->player;
 	float m_surfaceFriction = *((float *)player + off_surfaceFriction);
@@ -681,22 +664,6 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
-	if (sym_CGameMovement.length > 1) {
-		ConMsg("Attempting to find CGameMovement vtable\n");
-		auto _vt = symfinder.Resolve(server_loader.GetModule(), sym_CGameMovement.name.c_str(), sym_CGameMovement.length);
-		if (_vt == nullptr) {
-			ConMsg("Failed to find CGameMovement vtable, things might explode!\n");
-		} else {
-			auto vt = RelativeToAbsolute((char *)_vt, off_CGameMovement);
-			if (vt == nullptr) {
-				ConMsg("Failed to get CGameMovement vtable, things might explode!\n");
-			} else {
-				vt_CGameMovement = reinterpret_cast<CGameMovement *>(vt);
-				ConMsg("CGameMovement vtable: 0x%I64x\n", vt_CGameMovement);
-			}
-		}
-	}
-
 	func_TryPlayerMove = reinterpret_cast<TryPlayerMove_t>(
 	    symfinder.Resolve(server_loader.GetModule(), sym_TryPlayerMove.name.c_str(), sym_TryPlayerMove.length));
 
@@ -705,13 +672,13 @@ GMOD_MODULE_OPEN() {
 		return 0;
 	}
 
-	// ConMsg("Got TryPlayerMove: 0x%I64x\n", func_TryPlayerMove);
+	ConMsg("Got TryPlayerMove: 0x%I32x\n", func_TryPlayerMove);
 
-	/*bool hookCreated_TryPlayerMove = */ detour_TryPlayerMove.Create(reinterpret_cast<void *>(func_TryPlayerMove),
-	                                                                  reinterpret_cast<void *>(&hook_TryPlayerMove));
-	/*bool hookEnabled_TryPlayerMove = */ detour_TryPlayerMove.Enable();
+	bool hookCreated_TryPlayerMove = detour_TryPlayerMove.Create(reinterpret_cast<void *>(func_TryPlayerMove),
+	                                                             reinterpret_cast<void *>(&hook_TryPlayerMove));
+	bool hookEnabled_TryPlayerMove = detour_TryPlayerMove.Enable();
 
-	// ConMsg("TryPlayerMove hooked: %d, %d\n", hookCreated_TryPlayerMove, hookEnabled_TryPlayerMove);
+	ConMsg("TryPlayerMove hooked: %d, %d\n", hookCreated_TryPlayerMove, hookEnabled_TryPlayerMove);
 
 	return 1;
 }
